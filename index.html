@@ -15,7 +15,6 @@
             --ai-bubble: #f1f8e9;
             --border-radius: 12px;
         }
-
         body {
             font-family: 'Noto Sans KR', sans-serif;
             background-color: var(--bg-color);
@@ -25,7 +24,6 @@
             justify-content: center;
             height: 100vh;
         }
-
         #chat-container {
             width: 100%;
             max-width: 600px;
@@ -35,28 +33,22 @@
             border-left: 1px solid #eee;
             border-right: 1px solid #eee;
             box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            position: relative;
         }
-
         header {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
             color: white;
             padding: 20px;
             text-align: center;
         }
-
         header h1 { margin: 0; font-size: 24px; font-weight: 700; }
         header p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; }
-
         #input-area {
             border-bottom: 1px solid #eee;
             padding: 15px;
             display: flex;
             gap: 10px;
             background-color: #fafafa;
-            z-index: 10;
         }
-
         textarea {
             flex: 1;
             padding: 12px;
@@ -68,9 +60,7 @@
             transition: border-color 0.2s;
             background-color: white;
         }
-
         textarea:focus { border-color: var(--primary-color); }
-
         button {
             padding: 0 25px;
             background: linear-gradient(135deg, var(--primary-color) 0%, #00acc1 100%);
@@ -82,12 +72,17 @@
             cursor: pointer;
             transition: transform 0.1s;
         }
-
         button:active { transform: scale(0.97); }
         button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        #status { font-size: 12px; text-align: center; color: #ff5722; padding: 5px; background-color: #fafafa; border-bottom: 1px solid #eee; font-weight: bold;}
-
+        #status {
+            font-size: 12px;
+            text-align: center;
+            color: #ff5722;
+            padding: 5px;
+            background-color: #fafafa;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+        }
         #chat-window {
             flex: 1;
             overflow-y: auto;
@@ -96,7 +91,6 @@
             flex-direction: column;
             gap: 15px;
         }
-
         .message {
             max-width: 80%;
             padding: 12px 16px;
@@ -105,13 +99,11 @@
             line-height: 1.6;
             word-wrap: break-word;
         }
-
         .message.user {
             align-self: flex-end;
             background-color: var(--user-bubble);
             border-bottom-right-radius: 4px;
         }
-
         .message.ai {
             align-self: flex-start;
             background-color: var(--ai-bubble);
@@ -120,58 +112,50 @@
     </style>
 </head>
 <body>
-
 <div id="chat-container">
     <header>
         <h1>Luma</h1>
         <p>따뜻하고 친절하며, 무엇보다 정확한 답변을 드릴게요!</p>
     </header>
-
     <div id="input-area">
         <textarea id="user-input" rows="1" placeholder="서버 주소를 동기화하는 중..." disabled></textarea>
         <button id="send-btn" disabled>전송</button>
     </div>
-    
-    <div id="status">캐글 서버 상태 점검 중...</div>
-    
+    <div id="status">서버 연결 확인 중...</div>
     <div id="chat-window">
         <div class="message ai">안녕하세요! 저는 Luma입니다. 주소 동기화가 완료되면 대화를 시작합니다.</div>
     </div>
 </div>
 
 <script>
-    // 파이썬 코드의 CHANNEL_ID와 완벽하게 일치해야 합니다.
     const CHANNEL_ID = "luma_unique_channel_7777";
-    
     let kaggleApiUrl = '';
     const chatWindow = document.getElementById('chat-window');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
     const statusDiv = document.getElementById('status');
-    
     let chatHistory = [];
 
     async function fetchLatestServerUrl() {
         try {
-            // [패치] 캐글 백엔드가 밀어넣어 준 최상위 공개 경로에서 404 없이 즉시 데이터를 읽어옵니다.
-            const response = await fetch(`https://luma-backend-sync-default-rtdb.asia-southeast1.firebasedatabase.app/${CHANNEL_ID}.json`);
-            if(!response.ok) throw new Error();
-            
+            const response = await fetch(
+                `https://luma-backend-sync-default-rtdb.asia-southeast1.firebasedatabase.app/${CHANNEL_ID}.json`,
+                { headers: { 'ngrok-skip-browser-warning': 'true' } }
+            );
+            if (!response.ok) throw new Error();
             const data = await response.json();
-            if (!data || !data.api_url) {
-                throw new Error();
-            }
-            
+            if (!data || !data.api_url) throw new Error();
+
             kaggleApiUrl = data.api_url.trim();
-            
-            statusDiv.innerText = "Luma 서버 연결 완료 (정확성 최우선 상태)";
+            statusDiv.innerText = "Luma 서버 연결 완료!";
             statusDiv.style.color = "#2e7d32";
             userInput.disabled = false;
             sendBtn.disabled = false;
             userInput.placeholder = "Luma에게 질문하세요... (Enter로 전송)";
         } catch (error) {
-            statusDiv.innerText = "서버 연결 대기 중... 캐글 노트북이 정상 실행 중인지 확인해 주세요.";
+            statusDiv.innerText = "서버 연결 대기 중... 캐글 노트북이 실행 중인지 확인해 주세요.";
             statusDiv.style.color = "#d32f2f";
+            setTimeout(fetchLatestServerUrl, 5000); // 5초마다 재시도
         }
     }
 
@@ -189,32 +173,27 @@
 
         appendMessage('user', message);
         userInput.value = '';
-        userInput.style.height = 'auto'; 
-        sendBtn.disabled = true; 
+        userInput.style.height = 'auto';
+        sendBtn.disabled = true;
 
         try {
             const response = await fetch(kaggleApiUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: message,
-                    history: chatHistory
-                })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify({ message: message, history: chatHistory })
             });
-
             if (!response.ok) throw new Error();
-
             const data = await response.json();
-            const lumaResponse = data.response;
-
-            appendMessage('ai', lumaResponse);
-            chatHistory.push([message, lumaResponse]); 
-
+            appendMessage('ai', data.response);
+            chatHistory.push([message, data.response]);
         } catch (error) {
-            appendMessage('ai', '서버 통신 실패. 캐글 창이 꺼졌거나 백그라운드에서 잠들었는지 확인해 주세요.');
+            appendMessage('ai', '서버 통신 실패. 캐글 창이 꺼졌거나 잠들었는지 확인해 주세요.');
         } finally {
-            sendBtn.disabled = false; 
-            userInput.focus(); 
+            sendBtn.disabled = false;
+            userInput.focus();
         }
     }
 
@@ -224,16 +203,13 @@
             sendMessage();
         }
     });
-
     userInput.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
         this.style.overflowY = this.scrollHeight > 150 ? "scroll" : "hidden";
     });
-
     sendBtn.addEventListener('click', sendMessage);
     window.addEventListener('DOMContentLoaded', fetchLatestServerUrl);
 </script>
-
 </body>
 </html>
