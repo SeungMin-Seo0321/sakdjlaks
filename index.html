@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luma: 따뜻하고 정확한 AI 친구</title>
+    <title>Luma</title>
     <style>
         :root {
             --bg-color: #fcfcf9;
@@ -42,6 +42,32 @@
         }
         header h1 { margin: 0; font-size: 24px; font-weight: 700; }
         header p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; }
+        #url-area {
+            padding: 12px 15px;
+            display: flex;
+            gap: 8px;
+            background-color: #fff8e1;
+            border-bottom: 1px solid #ffe082;
+        }
+        #url-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #ffe082;
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            outline: none;
+        }
+        #url-input:focus { border-color: var(--accent-color); }
+        #url-btn {
+            padding: 0 15px;
+            background: var(--accent-color);
+            color: #333;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
         #input-area {
             border-bottom: 1px solid #eee;
             padding: 15px;
@@ -117,46 +143,59 @@
         <h1>Luma</h1>
         <p>따뜻하고 친절하며, 무엇보다 정확한 답변을 드릴게요!</p>
     </header>
+    <div id="url-area">
+        <input id="url-input" type="text" placeholder="캐글에서 나온 URL 붙여넣기 (예: https://xxx.loca.lt/chat)" />
+        <button id="url-btn">연결</button>
+    </div>
     <div id="input-area">
-        <textarea id="user-input" rows="1" placeholder="서버 주소를 동기화하는 중..." disabled></textarea>
+        <textarea id="user-input" rows="1" placeholder="위에서 URL을 먼저 연결하세요." disabled></textarea>
         <button id="send-btn" disabled>전송</button>
     </div>
-    <div id="status">서버 연결 확인 중...</div>
+    <div id="status">URL을 입력하고 연결 버튼을 눌러주세요.</div>
     <div id="chat-window">
-        <div class="message ai">안녕하세요! 저는 Luma입니다. 주소 동기화가 완료되면 대화를 시작합니다.</div>
+        <div class="message ai">안녕하세요! 저는 Luma입니다. 캐글에서 나온 URL을 위에 입력해주세요!</div>
     </div>
 </div>
 
 <script>
-    const CHANNEL_ID = "luma_unique_channel_7777";
     let kaggleApiUrl = '';
     const chatWindow = document.getElementById('chat-window');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
     const statusDiv = document.getElementById('status');
+    const urlInput = document.getElementById('url-input');
+    const urlBtn = document.getElementById('url-btn');
     let chatHistory = [];
 
-    async function fetchLatestServerUrl() {
-        try {
-            const response = await fetch(
-                `https://luma-backend-sync-default-rtdb.asia-southeast1.firebasedatabase.app/${CHANNEL_ID}.json`
-            );
-            if (!response.ok) throw new Error();
-            const data = await response.json();
-            if (!data || !data.api_url) throw new Error();
+    urlBtn.addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        if (!url) return;
 
-            kaggleApiUrl = data.api_url.trim();
+        kaggleApiUrl = url.endsWith('/chat') ? url : url + '/chat';
+        statusDiv.innerText = "연결 테스트 중...";
+        statusDiv.style.color = "#f57c00";
+
+        try {
+            const res = await fetch(kaggleApiUrl + "?bypass=true", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'bypass-tunnel-reminder': 'true'
+                },
+                body: JSON.stringify({ message: "ping", history: [] })
+            });
+            if (!res.ok) throw new Error();
             statusDiv.innerText = "✅ Luma 서버 연결 완료!";
             statusDiv.style.color = "#2e7d32";
             userInput.disabled = false;
             sendBtn.disabled = false;
             userInput.placeholder = "Luma에게 질문하세요... (Enter로 전송)";
-        } catch (error) {
-            statusDiv.innerText = "서버 연결 대기 중... 캐글 노트북이 실행 중인지 확인해 주세요.";
+            userInput.focus();
+        } catch (e) {
+            statusDiv.innerText = "❌ 연결 실패. URL을 확인하거나 캐글 노트북이 실행 중인지 확인하세요.";
             statusDiv.style.color = "#d32f2f";
-            setTimeout(fetchLatestServerUrl, 5000);
         }
-    }
+    });
 
     function appendMessage(sender, text) {
         const msgDiv = document.createElement('div');
@@ -208,7 +247,6 @@
         this.style.overflowY = this.scrollHeight > 150 ? "scroll" : "hidden";
     });
     sendBtn.addEventListener('click', sendMessage);
-    window.addEventListener('DOMContentLoaded', fetchLatestServerUrl);
 </script>
 </body>
 </html>
